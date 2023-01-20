@@ -5,6 +5,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
@@ -12,14 +16,73 @@ datasource db {
 
 // Criando tabela de hábitos
 model Habit {
-  id String @id @default(uuid())
-  title String
+  id         String   @id @default(uuid())
+  title      String
   created_at DateTime
+
+  dayHabits DayHabit[]
+  weekDays  HabitWeekDays[]
 
   @@map("habits")
 }
+
 // o hábito terá um id que é uma string, um título que é uma string e uma data de criação, que é um DateTime
 // @id para falar que será a chave primária da aplicação
 // @default(uuid) para, quando o hábito for criado no banco de dados, preencher o id automaticamente com um uuid
 // uuid é um id único universal
 // @@map("habits") para definir o nome da tabela que será criada
+
+// Tabela para armazenar a recorrência do hábito, ou seja, quais dias da semana aquele hábito estará disponível
+// Nem todos os hábitos precisam ser praticados todos os dias da semana
+// Relacionamento de um para muitos, pois cada hábito pode estar disponível em vários dias da semana
+model HabitWeekDays {
+  id       String @id @default(uuid())
+  // referência do id do hábito e o dia da semana
+  habit_id String
+  week_day Int
+
+  habit Habit @relation(fields: [habit_id], references: [id])
+
+  // o mesmo hábito só pode estar disponível uma vez no mesmo dia da semana
+  @@unique([habit_id, week_day])
+  @@map("habit_week_days")
+}
+
+// Tabela para armazenar os hábitos completados em cada dia do calendário
+// Cada dia pode ter vários hábitos, e esses hábitos podem estar completos ou não
+// Tabela pivô relacionando hábitos e dias
+// Em bancos de dados SQL, relacionamento de muitos para muitos gera uma tabela pivô que guarda esse relacionamento
+model Day {
+  id   String   @id @default(uuid())
+  // nem todos os dias necessariamente serão completados os hábitos
+  // não será preciso cadastrar no banco de dados um registro na tabela Day se não for completado nenhum hábito naquele dia
+  // será criado um registro na tabela Day com a data que completou o hábito somente quando completar pelo menos algum hábito naquele dia
+  date DateTime
+
+  dayHabits DayHabit[]
+  // dayHabits não é um campo na tabela, e sim algo para o Prisma criar no JS
+
+  // criar índices para facilitar a busca
+  // cada registro dentro da tabela Day precisa ter o campo date único
+  @@unique([date])
+  @@map("days")
+}
+
+model DayHabit {
+  // id chave primária da tabela
+  id String @id @default(uuid())
+
+  // ids das tabelas dos relacionamentos
+  day_id   String
+  habit_id String
+
+  // criar chaves estrangeiras
+  // day referencia o model Day e habit referencia o model Habit
+  // o model DayHabit se relaciona com os models Day e Habit
+  day   Day   @relation(fields: [day_id], references: [id])
+  habit Habit @relation(fields: [habit_id], references: [id])
+
+  // não pode ter o mesmo hábito completado duas vezes no mesmo dia
+  @@unique([day_id, habit_id])
+  @@map("day_habits")
+}
