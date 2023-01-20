@@ -5,7 +5,17 @@ module.exports = {
     './index.html'
   ],
   theme: {
-    extend: {},
+    extend: {
+      // adicionando cor ao leque de cores do tailwind
+      colors: {
+        background: '#09090A'
+      },
+
+      // configurando o grid para ter 7 linhas
+      gridTemplateRows: {
+        7: 'repeat(7, minmax(0, 1fr))'
+      },
+    },
   },
   plugins: [],
 }
