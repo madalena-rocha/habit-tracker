@@ -15,7 +15,7 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { Loading } from './src/components/Loading';
-import { Home } from './src/screens/Home'
+import { Routes } from './src/routes';
 
 export default function App() {
   // fontsLoaded para garantir que a aplicação carregue as fontes antes do app ser exibido para o usuário
@@ -38,7 +38,7 @@ export default function App() {
   // O React Native utiliza o React para desenvolver as interfaces de forma declarativa utilizando a sintaxe do JSX
   return (
     <>
-      <Home />
+      <Routes />
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
     </>
   );
