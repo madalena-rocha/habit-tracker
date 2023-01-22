@@ -1,5 +1,8 @@
 import { generateDatesFromYearBeginning  } from "../utils/generate-dates-from-year-beginning";
 import { HabitDay } from "./HabitDay"
+import { useEffect, useState } from "react"
+import { api } from "../lib/axios";
+import dayjs from "dayjs";
 
 const weekDays = [
     'D', 
@@ -18,7 +21,34 @@ const minimumSummaryDatesSize = 18 * 7
 // Quantidade de quadradinhos que precisa mostrar em tela para preencher a tabela de dias quando tiver uma quatidade de dias menor do que o desejado
 const amountOfDaysToFill = minimumSummaryDatesSize - summaryDates.length
 
+// Informar o formato do summary, que é um array de objetos
+type Summary = {
+    id: string;
+    date: string;
+    amount: number;
+    completed: number;
+}[]
+
 export function SummaryTable() {
+    // Fazer a barra de progresso aumentar ou diminuir de acordo com a quatidade de hábitos chacados
+    // Tudo que é colocado fora do componente em React não vai conseguir enxergar informações que estão dentro do componente
+    // Por isso, geralmente chamadas HTTP devem ser feitas dentro do componente
+    // Porém, o React tem o comportamento de ser reativo a mudanças de estados
+    // Tudo que está diretamente dentro da função do componente executa toda vez que o React entrar nesse fluxo de atualização
+    // Não é desejável que a API fique executando várias vezes, sendo necessário usar o useEffect
+    // O useEffect é uma função do React que lida com efeitos colaterais
+    // O primeiro parâmetro é a função que vai executar, e o segundo parâmetro é quando, que é um array onde pode colocar variáveis
+    // Toda vez que o valor da variável mudar, o React vai executar o código dessa função
+    // Se deixar o array vazio, o código da função será executado uma única vez quando o componente for exibido em tela pela primeira vez
+
+    const [summary, setSummary] = useState<Summary>([])
+
+    useEffect(() => {
+        api.get('summary').then(response => {
+            setSummary(response.data)
+        })
+    }, [])
+
     return (
         <div className="w-full flex">
             <div className="grid grid-rows-7 grid-flow-row gap-3">
@@ -40,13 +70,21 @@ export function SummaryTable() {
 
             <div className="grid grid-rows-7 grid-flow-col gap-3">
                 {summaryDates.map(date => {
+                    // verificar se o dia que está sendo percorrido é igual a alguma data presente dentro do resumo
+                    const dayInSummary = summary.find(day => {
+                        return dayjs(date).isSame(day.date, 'day')
+                        // isSmae checa ano, mês, dia, minuto, segundo, milésimo... 'day' para checar somente até o dia
+                    })
+
                     // para cada data, mostrar um habitDay
                     // a key precisa ser uma string, portanto, não pode ser um objeto date
                     return (
                         <HabitDay 
                             key={date.toString()} 
-                            amount={5} 
-                            completed={Math.round(Math.random() * 5)} 
+                            date={date}
+                            // dayInSummary pode existir ou não, procurar o amount somente se o dayInSummary não for nulo
+                            amount={dayInSummary?.amount} 
+                            completed={dayInSummary?.completed} 
                         />
                     )
                 })}
