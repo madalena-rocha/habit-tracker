@@ -42,7 +42,13 @@ export function SummaryTable() {
                 {summaryDates.map(date => {
                     // para cada data, mostrar um habitDay
                     // a key precisa ser uma string, portanto, não pode ser um objeto date
-                    return <HabitDay key={date.toString()} />
+                    return (
+                        <HabitDay 
+                            key={date.toString()} 
+                            amount={5} 
+                            completed={Math.round(Math.random() * 5)} 
+                        />
+                    )
                 })}
 
                 {amountOfDaysToFill > 0 && Array.from({ length: amountOfDaysToFill }).map((_, i) => {
