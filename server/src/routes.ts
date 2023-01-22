@@ -121,4 +121,108 @@ export async function appRoutes(app: FastifyInstance) {
             completedHabits,
         }
     })
+
+    // Rota para completar / remover o status de completo de um hábito
+    app.patch('/habits/:id/toggle', async (request) => {
+        // o id passado no parâmetro da rota é um route param, um parâmetro de identificação
+        
+        const toggleHabitParams = z.object({
+            id: z.string().uuid(), // validar que está no formato uuid
+        })
+
+        const { id } = toggleHabitParams.parse(request.params)
+
+        // Quando o usuário for fazer o toggle em um hábito, sempre precisa ser da data atual
+        // Se desejar permitir completar hábitos retroativo, receber uma data para utilizar para completar o hábito naquela data
+        const today = dayjs().startOf('day').toDate()
+    
+        // Procurar no prisma um dia onde a data seja igual à data de hoje
+        let day = await prisma.day.findUnique({
+            where: {
+                date: today,
+            }
+        })
+
+        // Se o dia não está cadastrado no banco de dados, se o usuário ainda não havia completado nenhum hábito antes, criar a informação no banco de dados
+        if (!day) {
+            day = await prisma.day.create({
+                data: {
+                    date: today,
+                }
+            })
+        }
+
+        // Verificar se o usuário já havia marcado esse hábito como completo nesse dia
+        const dayHabit = await prisma.dayHabit.findUnique({
+            where: {
+                day_id_habit_id: {
+                    day_id: day.id,
+                    habit_id: id,
+                }
+            }
+        })
+
+        // Se já havia marcado como completo, remover a marcação de completo
+        if (dayHabit) {
+            await prisma.dayHabit.delete({
+                where: {
+                    id: dayHabit.id,
+                }
+            })
+        } else {
+            // Certificar que a variável day existe, ou encontrou ela ou criou um registro novo no banco de dados
+            // Completar o hábito nesse dia
+            await prisma.dayHabit.create({
+                data: {
+                    day_id: day.id,
+                    habit_id: id,
+                }
+            })
+        }
+    })
+
+    // Rota de resumo de dias
+    app.get('/summary', async () => {
+        // No resumo, retornar um array com várias informações, cada informação sendo um objeto do JS
+        // Cada um dos objetos precisa ter 3 informações: a data, quantos hábitos eram possíveis completar nessa data, e quantos hábitos foram completados nessa data
+    
+        // Em queries mais complexas, com mais condições, relacionamentos, geralmente é necessário escrever o SQL na mão (RAW)
+        const summary = await prisma.$queryRaw`
+            SELECT 
+                D.id, 
+                D.date, 
+                /* Sub Query */
+                (
+                    /* Trazendo todos os registros da tabela day_habits onde o dia armazenado na tabela day_habits seja igual ao dia listado da query principal */
+                    SELECT 
+                        cast(count(*) as float)
+                        /* o count retorna o formato BigInt, sendo necessário convertê-lo em JSON para o front-end */
+                    FROM day_habits DH
+                    WHERE DH.day_id = D.id
+                ) as completed,
+                /* O retorno dessa query será mostrado para o front-end como completed */
+                (
+                    /* Retornar o total de hábitos disponíveis naquela data */
+                    SELECT
+                        cast(count(*) as float)
+                        /* Trazer todos os hábitos que estavam disponíveis nesse dia da semana */
+                    FROM habit_week_days HWD
+                    JOIN habits H
+                        ON H.id = HWD.habit_id
+                        /* Buscando o hábito relacionado com cada habit_week_days */
+                    WHERE
+                        HWD.week_day = cast(strftime('%w', D.date/1000.0, 'unixepoch') as int)
+                        /* No SQLite, os campos de datetime são salvos no formato Epoch Timestamp, um número que representa a data atual, correspondendo ao nº de segundos que se passaram desde 1/1/1970 */
+                        /* No SQLite, o campo do tipo Unix Epoch Timestamp é salvo por milisegundos */ 
+                        /* strftime é uma função para formatar a data, onde %w retorna o dia da semana, com o domingo começando em 0, D.date é o time-value, e unixepoch é o formato que a data está */
+                        /* strftime retorna uma string, cast para converter em inteiro */
+                        AND H.created_at <= D.date
+                        /* Validando que o hábito no qual está fazendo a verificação tenha sendo criado antes ou no mesmo dia que a data específica */
+                ) as amount
+            FROM days D
+            /* D é o alias para days */
+        `
+
+        return summary
+    })
 }
