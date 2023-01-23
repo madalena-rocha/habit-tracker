@@ -69,7 +69,8 @@ export function SummaryTable() {
             </div>
 
             <div className="grid grid-rows-7 grid-flow-col gap-3">
-                {summaryDates.map(date => {
+                {summary.length && summaryDates.map(date => {
+                    // carregar a lista de datas somente quando a variável no estado summary já tiver sido carregado
                     // verificar se o dia que está sendo percorrido é igual a alguma data presente dentro do resumo
                     const dayInSummary = summary.find(day => {
                         return dayjs(date).isSame(day.date, 'day')
@@ -84,7 +85,7 @@ export function SummaryTable() {
                             date={date}
                             // dayInSummary pode existir ou não, procurar o amount somente se o dayInSummary não for nulo
                             amount={dayInSummary?.amount} 
-                            completed={dayInSummary?.completed} 
+                            defaultCompleted={dayInSummary?.completed} 
                         />
                     )
                 })}

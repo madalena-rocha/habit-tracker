@@ -1,18 +1,22 @@
 import * as Popover from '@radix-ui/react-popover';
-import * as Checkbox from '@radix-ui/react-checkbox';
 import clsx from 'clsx';
 import { ProgressBar } from './ProgressBar';
-import { Check } from 'phosphor-react';
 import dayjs from 'dayjs';
+import { HabitsList } from './HabitsList';
+import { useState } from 'react';
 
 interface HabitDayProps {
     date: Date
-    completed?: number
+    defaultCompleted?: number
     amount?: number
 }
 
-export function HabitDay({ completed = 0, amount = 0, date }: HabitDayProps) {
+export function HabitDay({ defaultCompleted = 0, amount = 0, date }: HabitDayProps) {
     // Quando completed e amount não forem definidos, iniciar como 0
+
+    // O completed está fixo, é um número que vem do SummaryTable, para que não seja fixo, criar um estado
+    const [completed, setCompleted] = useState(defaultCompleted)
+    // O valor padrão é o defaultCompleted
 
     // Gerar o percentual de progresso
     const completedPercentage = amount > 0 ? Math.round((completed / amount) * 100) : 0
@@ -23,11 +27,21 @@ export function HabitDay({ completed = 0, amount = 0, date }: HabitDayProps) {
     const datOfWeek = dayjs(date).format('dddd')
     // get('day') retorna o dia da semana numérico
 
+    // Atualizar a barra de progresso e a cor do quadradinho ao desmarcar os hábitos
+    // O único componente que sabe quantos hábitos estão completos em tempo real é o HabitsList
+    // Porém, a barra de progresso está no componente HabitDay
+    // Como o componente HabitDay vai conseguir obter a informação de que a lista de hábitos completos mudou?
+    // Comunicação entre componentes
+
+    function handleCompletedChanged(completed: number) {
+        setCompleted(completed)
+    }
+
     return (
         <Popover.Root>
             <Popover.Trigger 
                 // Mudar a cor de fundo com base no progresso
-                className={clsx('w-10 h-10 border-2 rounded-lg', {
+                className={clsx('w-10 h-10 border-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-violet-600 focus:ring-offset-2 focus:ring-offset-background', {
                     'bg-zinc-900 border-zinc-800': completedPercentage === 0,
                     'bg-violet-900 border-violet-700': completedPercentage > 0 && completedPercentage < 20,
                     'bg-violet-800 border-violet-600': completedPercentage >= 20 && completedPercentage < 40,
@@ -48,28 +62,11 @@ export function HabitDay({ completed = 0, amount = 0, date }: HabitDayProps) {
 
                     <ProgressBar progress={completedPercentage} />
 
-                    <div className="mt-6 flex flex-col gap-3">
-                        <Checkbox.Root
-                            className="flex items-center gap-3 group"
-                            // a classe group permite fazer estilizações baseadas em propriedades que o elemento <Checkbox.Root /> tem dentro de outros elementos internos a ele
-                        >
-                            <div 
-                                className="h-8 w-8 rounded-lg flex items-center justify-center bg-zinc-900 border-2 border-zinc-800 group-data-[state=checked]:bg-green-500 group-data-[state=checked]:border-green-500"
-                                // quando o grupo tiver um atributo data state com o valor checked, colocar a estilização indicada 
-                            >
-                                <Checkbox.Indicator>
-                                    <Check size={20} className="text-white" />
-                                </Checkbox.Indicator>
-                            </div>
-
-                            <span 
-                                className="font-semibold text-xl text-white leading-tight group-data-[state=checked]:line-through group-data-[state=checked]:text-zinc-400"
-                                // riscar o texto quando tiver completo
-                            >
-                                Beber 2L de água
-                            </span>
-                        </Checkbox.Root>
-                    </div>
+                    <HabitsList 
+                        date={date} 
+                        onCompletedChanged={handleCompletedChanged}
+                        // Enviar a função para o componente como propriedade
+                    />
 
                     <Popover.Arrow height={8} width={16} className="fill-zinc-900" />
                 </Popover.Content>
