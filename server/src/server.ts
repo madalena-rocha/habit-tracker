@@ -17,6 +17,8 @@ app.register(appRoutes)
 
 app.listen({
     port: 3333,
+    host: '0.0.0.0',
+    // Por padrão, o fastify não aceita conexão por IP, somente por localhost
 }).then(() => {
     console.log('HTTP Server running!')
 })

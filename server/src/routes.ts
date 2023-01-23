@@ -114,7 +114,8 @@ export async function appRoutes(app: FastifyInstance) {
         // verificar se o dia não está nulo, então buscar a informação dayHabits, percorrer todos os hábitos completados naquele dia, e para cada registro na tabela dayHbit, retornar o id dos hábitos completados
         const completedHabits = day?.dayHabits.map(dayHabit => {
             return dayHabit.habit_id
-        })
+        }) ?? []
+        // retornar um array vazio caso o valor esteja indefinido
         
         return {
             possibleHabits,
