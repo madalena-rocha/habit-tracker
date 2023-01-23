@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+// useCallback para garantir melhor performance do useFocusEffect
 import { View, Text, ScrollView, Alert } from 'react-native';
 // No mobile, quando os elementos não cabem na tela, não ativa a rolagem por padrão, sendo necessário envolver a estrutura pela ScrollView 
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 
 import { api } from '../lib/axios';
@@ -49,9 +50,11 @@ export function Home() {
     }
 
     // Chamar a função fetchData quando o componente é montado em tela
-    useEffect(() => {
+    useFocusEffect(useCallback(() => {
+        // Quando vai para a tela de marcar/desmarcar hábitos completos, modifica algo e retorna para a Home, esta tela não é renderizada novamente, não atualizando a cor do quadradinho 
+        // o useFocusEffect vai chamar a função fetchData quando a interface receber o foco nela novamente
         fetchData();
-    }, []);
+    }, []));
     // [] é o array de dependências caso queira vincular algum estado que dispare o useEffect novamente se ele mudar
 
     // Se está buscando as informações do back-end, ao invés de mostrar o conteúdo da tela, exibir o componente de loading
