@@ -4,7 +4,7 @@ import './src/lib/dayjs';
 // A View é utilizada para declarar o que seria uma div na web, a Text para declarar que quer renderizar texto
 // Depois será renderizado utilizando a API nativa de acordo com o ambiente, seja no Android ou no iOS em que a aplicação estiver rodando
 // StatusBar é uma API que consegue manipular a aparência dos elementos que compõe a StatusBar do dispositivo
-import { StatusBar } from 'react-native';
+import { StatusBar, Button } from 'react-native';
 // useFonts para lidar com o carregamento das fontes
 import {
   useFonts, 
@@ -13,9 +13,19 @@ import {
   Inter_700Bold, 
   Inter_800ExtraBold
 } from '@expo-google-fonts/inter';
+import * as Notifications from 'expo-notifications';
 
 import { Loading } from './src/components/Loading';
 import { Routes } from './src/routes';
+
+// Setar as características da notificação, pois existem vários critérios que a notificação vai levar em consideração do próprio dispositivo para ter prioridade de exibição
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false
+  }),
+});
 
 export default function App() {
   // fontsLoaded para garantir que a aplicação carregue as fontes antes do app ser exibido para o usuário
@@ -28,6 +38,25 @@ export default function App() {
     Inter_800ExtraBold
   });
 
+  async function scheduleNotification() {
+    // Gatilho para determinar quando a notificação deve ser enviada
+    const trigger = new Date(Date.now());
+    trigger.setMinutes(trigger.getMinutes() + 1);
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Olá, Madalena! 🤩',
+        body: 'Você praticou seus hábitos hoje?'
+      },
+      trigger
+    });
+  }
+
+  async function getScheduleNotification() {
+    const schedules = await Notifications.getAllScheduledNotificationsAsync();
+    console.log(schedules);
+  }
+
   // Se a fonte não está disponível, não renderizar e exibir o conteúdo do app
   if (!fontsLoaded) {
     return (
@@ -37,6 +66,14 @@ export default function App() {
 
   // O React Native utiliza o React para desenvolver as interfaces de forma declarativa utilizando a sintaxe do JSX
   return (
+    /*
+    <>
+      <Button title="Enviar Notificação" onPress={scheduleNotification} />
+      <Button title="Notificações Agendadas" onPress={getScheduleNotification} />
+      <Routes />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" />
+    </>
+    */
     <>
       <Routes />
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
